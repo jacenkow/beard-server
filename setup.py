@@ -59,6 +59,8 @@ setup_requires = [
 ]
 
 install_requires = [
+    'beard>=0.0',
+    'celery>=3.1.19'
 ]
 
 packages = find_packages()
