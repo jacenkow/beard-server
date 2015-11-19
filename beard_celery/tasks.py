@@ -24,19 +24,84 @@
 
 from __future__ import absolute_import
 
+import os
+import pickle
+
 from .celery import app
+from .utils import clustering
+from .utils import learn_model
+from .utils import pair_sampling
 
 
 @app.task
-def add(x, y):
-    return x + y
+def make_clusters(signatures, records):
+    # Default values.
+    blocking_function = "block_phonetic"
+    blocking_threshold = 0
+    blocking_phonetic_alg = "nysiis"
+    clustering_threshold = 0.709
+    verbose = 0
+    n_jobs = 16
+
+    try:
+        # Distance model as a path to the file.
+        distance_model = os.path.abspath(os.path.join(os.path.dirname(
+                         __file__), 'data/linkage.dat'))
+
+        return clustering(input_signatures=signatures,
+                          input_records=records, distance_model=distance_model,
+                          verbose=verbose, n_jobs=n_jobs,
+                          clustering_threshold=clustering_threshold,
+                          blocking_function=blocking_function,
+                          blocking_threshold=blocking_threshold,
+                          blocking_phonetic_alg=blocking_phonetic_alg)
+    except IOError:
+        """Probably the file does not exist, ie. the model was not trained."""
+        return "ERR: linkage.dat file not found. Train the model."
 
 
 @app.task
-def mul(x, y):
-    return x * y
+def train_model(signatures, records, clusters):
+    """Train the model, which later will be for clustering."""
 
+    # The first step is to create a set of labeled pairs.
+    balanced = 1
+    sample_size = 500000
+    use_blocking = 1
+    blocking_function = 'block_phonetic'
+    blocking_threshold = 1
+    blocking_phonetic_alg = 'nysiis'
 
-@app.task
-def xsum(numbers):
-    return sum(numbers)
+    output_pairs = pair_sampling(
+        train_filename=signatures,
+        clusters_filename=clusters,
+        balanced=balanced,
+        sample_size=sample_size,
+        use_blocking=use_blocking,
+        blocking_function=blocking_function,
+        blocking_threshold=blocking_threshold,
+        blocking_phonetic_alg=blocking_phonetic_alg,
+    )
+
+    # The second step is about creating linkage.dat file (model).
+    distance_model = os.path.abspath(os.path.join(os.path.dirname(
+                     __file__), 'data/linkage.dat'))
+    ethnicity_estimator = pickle.load(open(os.path.abspath(os.path.join(
+                          os.path.dirname(__file__),
+                          'data/ethnicity_estimator.pickle')), 'r'))
+    # Fast: 0 - all features, 1: fast features,
+    #       2: co-authors, affiliation, full name.
+    fast = 2
+    verbose = 0
+
+    try:
+        learn_model(
+            distance_pairs=output_pairs,
+            input_signatures=signatures,
+            input_records=records,
+            distance_model=distance_model,
+            verbose=verbose,
+            ethnicity_estimator=ethnicity_estimator,
+            fast=fast)
+    except:
+        return "ERR: linkage.dat couldn't be created."
