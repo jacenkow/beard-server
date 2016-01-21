@@ -41,7 +41,7 @@ def make_clusters(signatures, records):
     blocking_phonetic_alg = "nysiis"
     clustering_threshold = 0.709
     verbose = 0
-    n_jobs = 16
+    n_jobs = 1
 
     try:
         # Distance model as a path to the file.
