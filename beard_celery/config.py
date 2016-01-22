@@ -22,5 +22,11 @@
 # waive the privileges and immunities granted to it by virtue of its status
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
-BROKER_URL = 'amqp://'
+BROKER_URL = ''
+CELERY_RESULT_BACKEND = ''
+
 CELERY_IMPORTS = ('beard_celery.tasks',)
+
+CELERY_ACCEPT_CONTENT = ['msgpack']
+CELERY_TASK_SERIALIZER = 'msgpack'
+CELERY_RESULT_SERIALIZER = 'msgpack'
