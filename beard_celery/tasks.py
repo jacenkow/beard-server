@@ -34,7 +34,7 @@ from .utils import pair_sampling
 
 
 @app.task
-def make_clusters(signatures, records):
+def make_clusters(signatures, records, known_clusters=None):
     # Default values.
     blocking_function = "block_phonetic"
     blocking_threshold = 0
@@ -50,6 +50,7 @@ def make_clusters(signatures, records):
 
         return clustering(input_signatures=signatures,
                           input_records=records, distance_model=distance_model,
+                          input_clusters=known_clusters,
                           verbose=verbose, n_jobs=n_jobs,
                           clustering_threshold=clustering_threshold,
                           blocking_function=blocking_function,
